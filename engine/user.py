@@ -16,6 +16,7 @@ class User:
         self.name = name
         self.history = []
         self.skill_stack = {}  # skill_id : SkillStackObj
+        self.context = {}
 
     def update_skill(self, skill_id, state):
         if skill_id not in self.skill_stack:

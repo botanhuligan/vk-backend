@@ -1,3 +1,6 @@
+from typing import Dict, Type
+
+from .action import Action
 from .user import User
 from .state import State
 from .utils import *
@@ -9,6 +12,15 @@ class Skill:
         self.default_state = None
         self.states = {}
         self.build(filename)
+        self.actions = {}
+
+    def set_send_event(self, send_event):
+        for action in self.actions.values():
+            action.set_send_event(send_event)
+
+    def set_send_message(self, send_message):
+        for action in self.actions.values():
+            action.set_send_message(send_message)
 
     def build(self, filename):
         data = read_yaml(filename)
@@ -46,7 +58,7 @@ class Skill:
         if not self.default_state:
             raise Exception(NO_DEFAULT_STATE.format(filename))
 
-    def run(self, user: User, event: str, state: str or None = None) -> None:
+    def run(self, user: User, event: str, state: str or None = None, message: str or None = None) -> None:
         """
         if state == None -> init state
 
@@ -62,8 +74,8 @@ class Skill:
         if not next_state:
             log.error("No next state in skill={0} state={1}".format(self.name, state))
             return
-
-        log.debug("RUN_ACTION: " + self.states[next_state].action)
+        self.run_action(self.states[next_state].action, str(message), user.name, user.context)
+        # log.debug("RUN_ACTION: " + self.states[next_state].action + " " + str(message))
         user.update_skill(self.name, next_state)
 
     def can_handle(self, event, state=None) -> bool:
@@ -79,3 +91,12 @@ class Skill:
         if state not in self.states:
             return False
         return self.states[state].has_event(event)
+
+    def register_action(self, action_id: str, action: Type[Action]):
+        self.actions[action_id] = action()
+
+    def run_action(self, action_id: str, message: str, user_id: str, context: Dict):
+        if action_id in self.actions:
+            self.actions[action_id].go_run(message, user_id, context)
+        else:
+            log.error("No such action: {0}".format(action_id))
