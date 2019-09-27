@@ -1,0 +1,81 @@
+from .user import User
+from .state import State
+from .utils import *
+
+
+class Skill:
+    def __init__(self, filename):
+        self.name = None
+        self.default_state = None
+        self.states = {}
+        self.build(filename)
+
+    def build(self, filename):
+        data = read_yaml(filename)
+        if data:
+            if "name" not in data:
+                raise Exception(NO_NAME_IN_SKILL_YAML)
+
+            self.name = data["name"]
+            if "states" in data:
+                for state_id in data["states"]:
+                    state = State(state_id)
+                    state_data = data["states"][state_id]
+
+                    if "edges" not in state_data:
+                        continue
+
+                    edges = state_data["edges"]
+                    for event, next_state in edges.items():
+                        state.add_edge(event, next_state)
+
+                    if "action" in state_data:
+                        state.set_action(state_data["action"])
+
+                    if "is_default" in state_data:
+                        self.default_state = state_id
+
+                    self.states[state_id] = state
+
+        # Проверка корректности
+        for state_id, state in self.states.items():
+            for event, next_state in state.edges.items():
+                if next_state not in self.states:
+                    raise Exception(INCORRECT_STATE.format(next_state))
+
+        if not self.default_state:
+            raise Exception(NO_DEFAULT_STATE.format(filename))
+
+    def run(self, user: User, event: str, state: str or None = None) -> None:
+        """
+        if state == None -> init state
+
+        :param user:
+        :param event:
+        :param state:
+        :return:
+        """
+        if not state:
+            state = self.default_state
+        next_state = self.states[state].next_state(event)
+
+        if not next_state:
+            log.error("No next state in skill={0} state={1}".format(self.name, state))
+            return
+
+        log.debug("RUN_ACTION: " + self.states[next_state].action)
+        user.update_skill(self.name, next_state)
+
+    def can_handle(self, event, state=None) -> bool:
+        """
+        Returns True if can else False
+
+        :param event:
+        :param state:
+        :return:
+        """
+        if not state:
+            state = self.default_state
+        if state not in self.states:
+            return False
+        return self.states[state].has_event(event)
