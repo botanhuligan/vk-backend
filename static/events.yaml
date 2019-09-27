@@ -1,0 +1,11 @@
+HELLO_EVENT:
+  - Привет
+  - Алоха
+
+YES_EVENT:
+  - Да
+  - Ага
+
+NO_EVENT:
+  - нет
+  - не
