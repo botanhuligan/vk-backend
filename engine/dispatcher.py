@@ -16,6 +16,8 @@ class Dispatcher:
         self._events = {}
         self.queue = Queue()
         self.is_alive = True
+        self._send_message = lambda message: None
+        self._send_log = lambda message: None
 
     def kill(self):
         self.is_alive = False
@@ -58,13 +60,25 @@ class Dispatcher:
                 return event
         return None
 
+    def set_send_message(self, send_message):
+        self._send_message = send_message
+
     def send_message(self, message, user_id):
-        print({"message_text": message, "user_id": user_id})
+        mess = {"message_text": message, "user_id": user_id}
+        self._send_message(mess)
+
+    def set_send_log(self, send_message):
+        self._send_log = send_message
+
+    def send_log(self, message, user_id):
+        mess = {"log": message, "user_id": user_id}
+        self._send_log(mess)
 
     def start(self):
         for skill in self.skills.values():
             skill.set_send_event(self.add_event)
             skill.set_send_message(self.send_message)
+            skill.set_send_log(self.send_log)
 
         log.info("Dispatcher started")
         while self.is_alive:
@@ -100,6 +114,8 @@ class Dispatcher:
         self.queue.put(event)
 
     def run(self, event: Event):
+        self.send_log("Event: {0}".format(event.event), event.user_id)
+
         user = self._get_user(event.user_id)
         for skill_id, state in user.get_skill():
             if self.skills[skill_id].can_handle(event.event, state):

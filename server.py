@@ -1,3 +1,6 @@
+import json
+
+import requests
 from flask import Flask, request, abort, jsonify
 
 from simple_skill import simple_skill
@@ -7,6 +10,10 @@ import multiprocessing as mp
 
 app = Flask(__name__)
 
+headers = {'Content-type': 'application/json',  # Определение типа данных
+           'Accept': 'text/plain',
+           'Content-Encoding': 'utf-8'}
+
 
 class MyServer:
     def __init__(self):
@@ -14,10 +21,21 @@ class MyServer:
         self.dispatcher = Dispatcher()
         self.dispatcher.add_skill(simple_skill)
         self.dispatcher.build_events("static/events.yaml")
+        self.dispatcher.set_send_message(self.send_message)
+        self.dispatcher.set_send_log(self.send_log)
 
     def start(self):
         self.dispatcher.start()
 
+    def send_message(self, message):
+        requests.post("http://back:9081/say",
+                      json.dumps(message),
+                      headers=headers)
+
+    def send_log(self, message):
+        requests.post("http://back:9081/log",
+                      json.dumps(message),
+                      headers=headers)
 
 my_server = MyServer()
 process = []

@@ -17,7 +17,7 @@ class GetTimeAction(Action):
     def run(self, message, user_id, context: Dict):
         print("CURRENT_CONTEXT: " + str(context))
         context["action"] = "GetTimeAction"
-        self.event("RESTART", message)
+        self.event("RESTART", user_id)
         return "Сейчас {0}".format(datetime.now())
 
 

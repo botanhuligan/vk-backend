@@ -5,7 +5,7 @@ from .event import Event
 class Action:
     def __init__(self):
         self._send_event = lambda event: None
-        self._send_message = lambda message: None
+        self._send_message = lambda message, user_id: None
 
     def set_send_event(self, send_event):
         self._send_event = send_event

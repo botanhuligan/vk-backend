@@ -13,10 +13,14 @@ class Skill:
         self.states = {}
         self.build(filename)
         self.actions = {}
+        self._send_log = lambda mess, user_id: Nonee
 
     def set_send_event(self, send_event):
         for action in self.actions.values():
             action.set_send_event(send_event)
+
+    def set_send_log(self, _send_log):
+        self._send_log = _send_log
 
     def set_send_message(self, send_message):
         for action in self.actions.values():
@@ -74,9 +78,10 @@ class Skill:
         if not next_state:
             log.error("No next state in skill={0} state={1}".format(self.name, state))
             return
+
         self.run_action(self.states[next_state].action, str(message), user.name, user.context)
-        # log.debug("RUN_ACTION: " + self.states[next_state].action + " " + str(message))
         user.update_skill(self.name, next_state)
+        self._send_log("CHANGE_STATE: " + state + "--->" + next_state, user.name)
 
     def can_handle(self, event, state=None) -> bool:
         """
