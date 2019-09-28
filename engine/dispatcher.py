@@ -1,6 +1,8 @@
 from typing import Dict
 from multiprocessing import Queue
 import re
+
+from .answer import Answer
 from .action import Action
 from .message import Message
 from .user import User
@@ -67,8 +69,10 @@ class Dispatcher:
         self._send_message = send_message
 
     def send_message(self, message, user_id):
-        mess = {"message_text": message, "user_id": user_id}
-        self._send_message(mess)
+        message.set_user(user_id)
+        log.debug("SEND_MESSAGE" + str(message.message_text))
+        log.debug("SEND_MESSAGE" + str(message.message_text))
+        self._send_message(message.json())
 
     def set_send_log(self, send_message):
         self._send_log = send_message
@@ -99,7 +103,7 @@ class Dispatcher:
 
     def _unknown_event(self, event, user_id):
         log.warning(UNKNOWN_EVENT.format(event))
-        self.send_message("К сожалению, пока я тебя не понимаю...", user_id)
+        self.send_message(Answer("К сожалению, пока я тебя не понимаю..."), user_id)
 
     def message_handler(self, message: Message):
         # if message.message_text == "EXIT":

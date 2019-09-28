@@ -32,6 +32,7 @@ class MyServer:
         self.dispatcher.start()
 
     def send_message(self, message):
+        log.debug(json.dumps(message))
         requests.post("http://back:9081/say",
                       json.dumps(message),
                       headers=headers)

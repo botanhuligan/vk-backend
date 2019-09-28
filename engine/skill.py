@@ -1,6 +1,7 @@
 from typing import Dict, Type
 
-from engine.event import Event
+from .answer import Answer
+from .event import Event
 from .action import Action
 from .user import User
 from .state import State
@@ -90,7 +91,7 @@ class Skill:
             else:
                 answer = answer.replace("{%s}" % entity, user.context[entity])
 
-        self._send_message(answer, user.name)
+        self._send_message(Answer(answer), user.name)
 
     def run(self, user: User,
             event: str,

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Dict
-from engine import Skill, Action
+from engine import Skill, Action, Answer
 
 legend_skill = Skill("static/legend_skill.yaml")
 
@@ -8,7 +8,7 @@ legend_skill = Skill("static/legend_skill.yaml")
 # -------- Custom Actions --------
 class SayTimeAction(Action):
     def run(self, message, user_id, context: Dict):
-        return "Сейчас {0}".format(datetime.now().strftime("%H:%M"))
+        return Answer("Сейчас {0}".format(datetime.now().strftime("%H:%M")))
 
 
 # -------- Register Actions --------
