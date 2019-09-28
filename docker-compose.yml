@@ -1,24 +1,38 @@
 version: '3.6'
 services:
 
-  back:
-      volumes:
-        - .:/app
-      build:
-        context: .
-        dockerfile: Dockerfile
-      container_name: vk-server
-      ports:
-        - 9080:9080
-      env_file:
-        - ./.env
-      hostname: vk-server
-      command: python3 server.py
-      networks:
-        - server
-      restart: always
+#  back:
+#      volumes:
+#        - .:/app
+#      build:
+#        context: .
+#        dockerfile: Dockerfile
+#      container_name: vk-server
+#      ports:
+#        - 9080:9080
+#      env_file:
+#        - ./.env
+#      hostname: vk-server
+#      command: python3 server.py
+##      networks:
+##        - server
+#      restart: always
+
+  bert:
+    build:
+      context: .
+      dockerfile: icaas/Dockerfile
+    container_name: bert
+    ports:
+      - 5555:5555
+      - 5556:5556
+    restart: always
+    volumes:
+      - .:/app
+#    networks:
+#      - server
 
 
-networks:
-  server:
-    external: true
+#networks:
+#  server:
+#    external: true
