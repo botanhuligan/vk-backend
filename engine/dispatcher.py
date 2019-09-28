@@ -1,6 +1,6 @@
 from typing import Dict
 from multiprocessing import Queue
-
+import re
 from .action import Action
 from .message import Message
 from .user import User
@@ -55,6 +55,9 @@ class Dispatcher:
         :param user:
         :return:
         """
+        reg = re.compile('[^a-zA-Zа-яА-Я ]')
+        message_text = reg.sub('', message_text)
+        print(message_text)
         for event, phrases in self._events.items():
             if message_text.lower() in phrases:
                 return event

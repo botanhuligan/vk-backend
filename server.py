@@ -1,9 +1,8 @@
 import json
 
 import requests
-from flask import Flask, request, abort, jsonify
-
-from simple_skill import simple_skill
+from flask import Flask, request, abort
+from skills import legend_skill, simple_skill
 from engine import Dispatcher, Message
 from log import log
 import multiprocessing as mp
@@ -19,6 +18,7 @@ class MyServer:
     def __init__(self):
         self.init = "Hello"
         self.dispatcher = Dispatcher()
+        self.dispatcher.add_skill(legend_skill)
         self.dispatcher.add_skill(simple_skill)
         self.dispatcher.build_events("static/events.yaml")
         self.dispatcher.set_send_message(self.send_message)
@@ -36,6 +36,7 @@ class MyServer:
         requests.post("http://back:9081/log",
                       json.dumps(message),
                       headers=headers)
+
 
 my_server = MyServer()
 process = []

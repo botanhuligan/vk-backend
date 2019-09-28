@@ -1,0 +1,46 @@
+name: Legend
+
+states:
+  START:
+    edges:
+      HELLO_EVENT: SayHello
+      WHAT_YOU_CAN_EVENT: WhatYouCan
+      ABOUT_MUSEUM: AboutMuseum
+      WHAT_IS_THE_TIME: SayTime
+    is_default: true
+
+  SayHello:
+    edges:
+      RESTART: START
+    answer: Здравствуйте, {user_id}!
+    event: RESTART
+
+  WhatYouCan:
+    edges:
+      YES_EVENT: SayAboutGift
+      NO_EVENT: SayLetsStart
+    answer: Я могу рассказать про художников, скульпторов, картины, могу стать твоим компаньоном в путешествии по музею. И даже подготовить для тебя подарок в конце! Хочешь узнать какой?
+
+  SayAboutGift:
+    edges:
+      NEXT: SayLetsStart
+    answer: Я подготовлю для тебя уникальную мозаику-историю про твою прогулку.
+    event: NEXT
+
+  SayLetsStart:
+    edges:
+      RESTART: START
+    answer: Скажи поехали и начнём экскурсию!
+    event: RESTART
+
+  AboutMuseum:
+    edges:
+      NEXT: SayLetsStart
+    answer: Пушкинский музей - один из старейших и самых больших московских музеев зарубежного искусства. А я его дружелюбный гид!
+    event: NEXT
+
+  SayTime:
+    edges:
+      RESTART: START
+    action: say_time
+    event: RESTART

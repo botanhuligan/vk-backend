@@ -21,4 +21,5 @@ class Action:
 
     def go_run(self, message: str, user_id: str, context: Dict):
         result = self.run(message, user_id, context)
-        self._send_message(result, user_id)
+        if result:
+            self._send_message(result, user_id)

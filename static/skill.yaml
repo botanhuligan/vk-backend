@@ -3,7 +3,7 @@ name: TestSkill
 states:
   START:
     edges:
-      HELLO_EVENT: SayHello
+      START: SayHello
     is_default: true
     answer: Лол, {name}, здоровайся!
 
