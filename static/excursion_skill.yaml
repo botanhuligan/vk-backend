@@ -1,0 +1,25 @@
+name: Excursion
+
+states:
+  START:
+    edges:
+      START_EXCURSION: StartExcursion
+    is_default: true
+
+  StartExcursion:
+    answer: Мы рады Вас приветствовать в Пушкинском музее!
+    edges:
+      RESTART: START
+    event: RESTART
+
+  TellStory:
+    edges:
+      RESTART: START
+    answer: Здравствуйте, {user_id}!
+    event: RESTART
+
+  FindNextObject:
+    edges:
+      RESTART: START
+    answer: Здравствуйте, {user_id}!
+    event: RESTART

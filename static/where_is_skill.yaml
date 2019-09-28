@@ -1,0 +1,13 @@
+name: WhereIsSkill
+
+states:
+  START:
+    edges:
+      WHERE_IS_EVENT: WhereIs
+    is_default: true
+
+  WhereIs:
+    edges:
+      RESTART: START
+    action: where_is_action
+    event: RESTART

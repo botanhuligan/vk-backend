@@ -2,7 +2,9 @@ import json
 
 import requests
 from flask import Flask, request, abort
-from skills import legend_skill, simple_skill
+from skills import (
+    legend_skill, simple_skill, where_is_skill, excursion_skill
+)
 from engine import Dispatcher, Message
 from log import log
 import multiprocessing as mp
@@ -20,6 +22,8 @@ class MyServer:
         self.dispatcher = Dispatcher()
         self.dispatcher.add_skill(legend_skill)
         self.dispatcher.add_skill(simple_skill)
+        self.dispatcher.add_skill(where_is_skill)
+        self.dispatcher.add_skill(excursion_skill)
         self.dispatcher.build_events("static/events.yaml")
         self.dispatcher.set_send_message(self.send_message)
         self.dispatcher.set_send_log(self.send_log)

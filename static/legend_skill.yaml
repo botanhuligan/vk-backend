@@ -7,6 +7,8 @@ states:
       WHAT_YOU_CAN_EVENT: WhatYouCan
       ABOUT_MUSEUM: AboutMuseum
       WHAT_IS_THE_TIME: SayTime
+      SAY_JOKE: SayJoke
+      WHERE_MUSEUM: SayWhereMuseum
     is_default: true
 
   SayHello:
@@ -43,4 +45,16 @@ states:
     edges:
       RESTART: START
     action: say_time
+    event: RESTART
+
+  SayWhereMuseum:
+    answer: Направляйтесь по Сокольнической ветке со стороны «Охотного ряда» и выходите из первого вагона на Библиотеке имени Ленина. После чего поднимайтесь в город и идите прямо, мимо Дома Пашкова, минуя два перекрестка. Проделав данный путь, вы увидите перед собой красивое здание, выполненное в стиле классицизма, с колоннами и архитравами – это и есть музей изобразительных искусств имени Пушкина.
+    edges:
+      RESTART: START
+    event: RESTART
+
+  SayJoke:
+    answer: Самарский аэропорт нужно назвать имени Моне, а Саратовский имени Мане, чтобы уже перестали путать эти города.
+    edges:
+      RESTART: START
     event: RESTART
