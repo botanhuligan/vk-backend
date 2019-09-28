@@ -5,17 +5,22 @@ states:
     edges:
       HELLO_EVENT: SayHello
     is_default: true
+    answer: Лол, {name}, здоровайся!
 
   SayHello:
     edges:
       YES_EVENT: GetTime
+      NO_EVENT: SayGoodbye
     action: say_hello_action
 
   GetTime:
     edges:
       RESTART: START
     action: get_time_action
+    event: RESTART
+
   SayGoodbye:
     edges:
       RESTART: START
-    action: good_bye_action
+    answer: Нет так нет. До скорого свидания, {name}!
+    event: RESTART

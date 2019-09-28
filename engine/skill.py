@@ -1,10 +1,11 @@
 from typing import Dict, Type
 
+from engine.event import Event
 from .action import Action
 from .user import User
 from .state import State
 from .utils import *
-
+import re
 
 class Skill:
     def __init__(self, filename):
@@ -13,9 +14,13 @@ class Skill:
         self.states = {}
         self.build(filename)
         self.actions = {}
-        self._send_log = lambda mess, user_id: Nonee
+        self._send_log = lambda mess, user_id: None
+        self._send_message = lambda mess, user_id: None
+        self._send_event = lambda event: None
 
     def set_send_event(self, send_event):
+        self._send_event = send_event
+
         for action in self.actions.values():
             action.set_send_event(send_event)
 
@@ -23,6 +28,8 @@ class Skill:
         self._send_log = _send_log
 
     def set_send_message(self, send_message):
+        self._send_message = send_message
+
         for action in self.actions.values():
             action.set_send_message(send_message)
 
@@ -48,6 +55,12 @@ class Skill:
                     if "action" in state_data:
                         state.set_action(state_data["action"])
 
+                    if "event" in state_data:
+                        state.set_event(state_data["event"])
+
+                    if "answer" in state_data:
+                        state.set_answer(state_data["answer"])
+
                     if "is_default" in state_data:
                         self.default_state = state_id
 
@@ -62,13 +75,34 @@ class Skill:
         if not self.default_state:
             raise Exception(NO_DEFAULT_STATE.format(filename))
 
-    def run(self, user: User, event: str, state: str or None = None, message: str or None = None) -> None:
+    def change_state(self, user, state, next_state):
+        user.update_skill(self.name, next_state)
+        self._send_log("CHANGE_STATE: " + state + "--->" + next_state, user.name)
+
+    @staticmethod
+    def _get_entities(text):
+        return re.findall(r"\{([^\}]*)\}", text)
+
+    def answer_to_user(self, user, answer):
+        for entity in self._get_entities(answer):
+            if entity not in user.context:
+                answer = answer.replace("{%s}" % entity, "")
+            else:
+                answer = answer.replace("{%s}" % entity, user.context[entity])
+
+        self._send_message(answer, user.name)
+
+    def run(self, user: User,
+            event: str,
+            state: str or None = None,
+            message: str or None = None) -> None:
         """
         if state == None -> init state
 
         :param user:
         :param event:
         :param state:
+        :param message:
         :return:
         """
         if not state:
@@ -79,9 +113,28 @@ class Skill:
             log.error("No next state in skill={0} state={1}".format(self.name, state))
             return
 
-        self.run_action(self.states[next_state].action, str(message), user.name, user.context)
-        user.update_skill(self.name, next_state)
-        self._send_log("CHANGE_STATE: " + state + "--->" + next_state, user.name)
+        if self.states[next_state].action:
+            try:
+                self.run_action(
+                    self.states[next_state].action,
+                    str(message),
+                    user.name,
+                    user.context
+                )
+            except Exception as exception:
+                log.error(exception)
+                if self.states[next_state].answer:
+                    self.answer_to_user(user, self.states[next_state].answer)
+
+        elif self.states[next_state].answer:
+            self.answer_to_user(user, self.states[next_state].answer)
+
+        if self.states[next_state].event:
+            self._send_event(Event(self.states[next_state].event, user.name, message))
+        if message:
+            user.add_history(message)
+
+        self.change_state(user, state, next_state)
 
     def can_handle(self, event, state=None) -> bool:
         """

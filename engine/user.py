@@ -29,6 +29,12 @@ class User:
         for skill in sorted(self.skill_stack.items(), key=lambda kv: kv[1].time, reverse=True):
             yield skill[0], skill[1].state
 
+    def add_history(self, message):
+        self.history.append(message)
+
+    def get_history(self, amount):
+        return self.history[-amount:][::-1]
+
 
 if __name__ == "__main__":
     user = User("Test user")

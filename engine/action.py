@@ -13,8 +13,8 @@ class Action:
     def set_send_message(self, send_message):
         self._send_message = send_message
 
-    def event(self, event_text, user_id):
-        self._send_event(Event(event_text, user_id))
+    def event(self, event_text, user_id, message):
+        self._send_event(Event(event_text, user_id, message))
 
     def run(self, message: str, user_id: str, context: Dict):
         print("Base action is not redefined")
