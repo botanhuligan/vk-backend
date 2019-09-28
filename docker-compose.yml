@@ -17,8 +17,37 @@ services:
       networks:
         - server
       restart: always
+      links:
+        - "mongo:mongodb"
+        - "classifier:classifier"
 
+  classifier:
+    build:
+      context: .
+      dockerfile: icaas/Dockerfile
+    container_name: classifier
+    ports:
+      - 8585:8585
+    restart: always
+    volumes:
+      - .:/app
+    networks:
+      - server
+    links:
+      - "mongo:mongodb"
+  mongo:
+    ports:
+      - "27017:27017"
+    image: mongo
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - server
 
 networks:
   server:
     external: true
+
+volumes:
+  mongo-data: {}
