@@ -1,6 +1,7 @@
 """
 Скрипт для загрузки фикстурок
 """
+import os
 from pymongo import MongoClient
 import json
 
@@ -50,12 +51,12 @@ def save_to_json():
             EVENT_NAME: event[EVENT_NAME],
             EVENT_PHRASES: event[EVENT_PHRASES]
         })
-    with open("fixtures.json", "w") as stream:
+    with open(os.path.join(os.path.dirname(__file__), 'fixtures.json'), "w") as stream:
         stream.write(json.dumps(result, ensure_ascii=False))
 
 
 def load_from_json():
-    with open("fixtures.json", "r") as stream:
+    with open(os.path.join(os.path.dirname(__file__), 'fixtures.json'), "r") as stream:
         result = json.load(stream)
     for event in result[EVENT]:
         EVENTS.insert_one({
