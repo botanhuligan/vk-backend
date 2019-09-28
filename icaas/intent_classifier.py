@@ -9,13 +9,10 @@ import logging
 import numpy as np
 from typing import List, Union
 from bert_serving.client import BertClient
-from icaas.errors import EmptyKnnClassifierException
-logging.basicConfig(
-    format='%(levelname)s: [%(asctime)s.%(msecs)03d] {} %(name)s '
- '%(filename)s:%(funcName)s:%(lineno)s: %(message)s'.format("Classifier_service"),
- datefmt='%Y-%m-%d %H:%M:%S', level="INFO")
+from errors import EmptyKnnClassifierException
+
 log = logging.getLogger(__name__)
-TIMEOUT = 10
+TIMEOUT = 5000
 
 DOC_IDS = "_id"
 DOC_EXTERNAL_IDS = "external_ids"
@@ -26,13 +23,6 @@ EVENT_IDS = "_id"
 EVENT_NAME = 'name'
 EVENT_EMBEDDINGS = 'embeddings'
 EVENT_PHRASES = 'phrases'
-
-
-def id_generator(start_point: int):
-    itt = int(start_point)
-    while True:
-        itt += 1
-        yield itt
 
 
 class Event:
@@ -78,7 +68,7 @@ class IntentClassifier:
     """
 
     def __init__(self, mongo_address: str = None, mongo_port: int = None, db_name: str = None,
-                 doc_collection_name: str = None, event_collection_name: str = None, id_point: int = None,
+                 doc_collection_name: str = None, event_collection_name: str = None,
                  k_neighbors: int = None, knn_weights: str = None, knn_metric: str = None, knn_jobs: int = None,
                  bert_host: str = None, bert_port_in: int = None, bert_port_out: int = None
                  ):
@@ -87,7 +77,6 @@ class IntentClassifier:
         self.db_name = db_name
         self.doc_collection_name = doc_collection_name
         self.event_collection_name = event_collection_name
-        self.id_point = id_point
         self.k_neighbors = k_neighbors
         self.knn_weights = knn_weights
         self.knn_metric = knn_metric
@@ -96,26 +85,29 @@ class IntentClassifier:
         self.bert_port_in = bert_port_in
         self.bert_port_out = bert_port_out
         self._load_settings()
+        self._get_vector_service()
         self._set_up_documents_knn()
-        self._set_up_events()
+        self._set_up_events_knn()
         self.connection, self.doc_collection, self.events_collection = self._get_connection()
-        self.generator = id_generator(self.id_point)
         self.documents: List[Document] = []
         self.events: List[Event] = []
         self._load_documents()
         self._load_events()
+        log.debug("SERVICE LOADED")
 
     def _get_vector_service(self):
         """
         Метод подключения клиента BERT
         :return:
         """
+        log.debug("_get_vector_service: IN")
         self.bert_client = BertClient(
             ip=self.bert_host,
             port=self.bert_port_in,
             port_out=self.bert_port_out,
             timeout=TIMEOUT
         )
+        log.debug("_get_vector_service: LOADED")
 
     def _load_settings(self):
         """
@@ -125,22 +117,19 @@ class IntentClassifier:
         log.info("LOADING SETTINGS")
         if not self.mongo_address:
             log.info("LOADING ENV SETTING IC_MONGO_ADDRESS")
-            self.mongo_address = config('IC_MONGO_ADDRESS', default="127.0.0.1", cast=str)
+            self.mongo_address = config('IC_MONGO_ADDRESS', default="mongodb", cast=str)
         if not self.mongo_port:
             log.info("LOADING ENV SETTING IC_MONGO_ADDRESS")
             self.mongo_port = config('IC_MONGO_PORT', default="27017", cast=int)
         if not self.db_name:
             log.info("LOADING ENV SETTING IC_MONGO_DB_NAME")
-            self.db_name = config('IC_MONGO_DB_NAME', default="icaas", cast=str)
+            self.db_name = config('IC_MONGO_DB_NAME', default="pushkin", cast=str)
         if not self.doc_collection_name:
             log.info("LOADING ENV SETTING IC_MONGO_DOC_COLLECTION_NAME")
-            self.doc_collection_name = config('IC_DOC_MONGO_COLLECTION_NAME', default="documents", cast=str)
+            self.doc_collection_name = config('IC_DOC_MONGO_COLLECTION_NAME', default="art", cast=str)
         if not self.event_collection_name:
             log.info("LOADING ENV SETTING IC_EVENT_MONGO_COLLECTION_NAME")
             self.event_collection_name = config('IC_EVENT_MONGO_COLLECTION_NAME', default="events", cast=str)
-        if not self.id_point:
-            log.info("LOADING ENV SETTING IC_ID_POINT")
-            self.collection_name = config('IC_ID_POINT', default="0", cast=int)
         if not self.k_neighbors:
             log.info("LOADING ENV SETTING IC_KNN_K_NEIGHBORS")
             self.k_neighbors = config('IC_KNN_K_NEIGHBORS', default="10", cast=int)
@@ -155,17 +144,20 @@ class IntentClassifier:
             self.knn_jobs = config('IC_KNN_JOBS', default="10", cast=int)
         if not self.bert_host:
             log.info("LOADING ENV SETTING BERT_HOST_ADDRESS")
-            self.bert_host = config('BERT_HOST_ADDRESS', default="127.0.0.1", cast=str)
+            self.bert_host = config('BERT_HOST_ADDRESS', default="demo134.foxtrot.vkhackathon.com", cast=str)
+            print("USING BERT: ", self.bert_host)
         if not self.bert_port_in:
             log.info("LOADING ENV SETTING BERT_PORT_IN")
             self.bert_port_in = config('BERT_PORT_IN', default="5555", cast=int)
         if not self.bert_port_out:
             self.bert_port_out = config('BERT_PORT_OUT', default="5556", cast=int)
+        log.debug("_get_vector_service: SETTINGS LOADED")
 
     def _get_vector(self, string: str) -> np.ndarray:
         """
          Метод для преобразование строки в embedding
         """
+        log.debug("_get_vector: parsing -> " + str(string))
         return self.bert_client.encode([string, ])[0]
 
     def _set_up_documents_knn(self) -> None:
@@ -173,56 +165,75 @@ class IntentClassifier:
         Метод для инициализации KNN класификатора для документов
         :return: None
         """
-
+        log.debug("_set_up_documents_knn: IN")
         self.documents_knn = KNeighborsClassifier(
             n_neighbors=self.k_neighbors,
             weights=self.knn_weights,
             metric=self.knn_metric,
             n_jobs=self.knn_jobs
         )
+        log.debug("_set_up_documents_knn: LOADED")
 
-    def _set_up_events(self) -> None:
+    def _set_up_events_knn(self) -> None:
         """
         Метод для инициализации KNN классификатора для ивентов
         :return:
         """
+        log.debug("_set_up_events: IN")
         self.events_knn = KNeighborsClassifier(
             n_neighbors=self.k_neighbors,
             weights=self.knn_weights,
             metric=self.knn_metric,
             n_jobs=self.knn_jobs
         )
+        log.debug("_set_up_events: DONE")
 
     def _load_events_knn(self) -> None:
         """
         Метод для перестройки KNN классификатора иветнов
         :return:
         """
+        log.debug("_load_events_knn: IN")
         if not self.events_knn:
+            log.debug("_load_events_knn: empty events knn")
             raise EmptyKnnClassifierException()
+        if not self.events:
+            log.debug("_load_events_knn: no events")
+            return
         X = []  # Привычки Data Science =) Не ругайтесь на формат переменной)
         Y = []  # Привычки Data Science =) Не ругайтесь на формат переменной)
         for event in self.events:
+            log.debug("_load_events_knn: loading event: " + str(event.name))
             if not event.embeddings:
                 log.warning("_LOAD_EVENT_KNN: EXCEPTION WHEN LOADING ITEM'S EMBEDDING: " + str(event))
                 continue
             if not event.name:
                 log.warning("_LOAD_EVENT_KNN: EXCEPTION WHEN LOADING ITEM'S NAME: " + str(event))
                 continue
-            X.append(event.embeddings)
-            Y.append(event.name)
+            for emb in event.embeddings:
+                X.append(emb)
+                Y.append(event.name)
+        X = np.array(X)
+        Y = np.array(Y)
         self.events_knn.fit(X, Y)
+        log.debug("_load_events_knn: knn fitted")
 
     def _load_documents_knn(self) -> None:
         """
         Метод для перестройки KNN классификатора документов
         :return:
         """
+        log.debug("_load_documents_knn: IN")
         if not self.documents_knn:
+            log.debug("_load_documents_knn: empty events knn")
             raise EmptyKnnClassifierException()
         X = []  # Привычки Data Science =) Не ругайтесь на формат переменной)
         Y = []  # Привычки Data Science =) Не ругайтесь на формат переменной)
+        if not self.documents:
+            log.debug("_load_events_knn: no documents")
+            return
         for document in self.documents:
+            log.debug("_load_events_knn: loading event: " + str(document.external_id))
             if not document.docs:
                 log.warning("_LOAD_KNN: EXCEPTION WHEN LOADING ITEM'S docs: " + str(document))
                 continue
@@ -230,8 +241,9 @@ class IntentClassifier:
                 log.warning("_LOAD_KNN: EXCEPTION WHEN LOADING ITEM'S EXTERNAL IDS FOR DOCUMENT ID: "
                             + str(document.ids))
                 continue
-            X.append(np.array(x.embedding for x in document.docs))
-            Y.append(np.array(document.external_id).reshape(1, -1))
+            for doc in document.docs:
+                X.append(doc.embedding)
+                Y.append(document.external_id)
         self.documents_knn.fit(X, Y)
 
     def _load_documents(self):
@@ -239,13 +251,19 @@ class IntentClassifier:
         Метод для предзагрузки документов в локальную коллекцию
         :return:
         """
+        log.debug("_load_documents: IN")
+        if not self.events_collection.find_one():
+            log.debug("_load_documents: No Documents")
+            return
         for doc in self.doc_collection.find():
+            log.debug("_load_documents: loading doc: " + str(doc[DOC_IDS]))
             document = Document(
                 ids=doc[DOC_IDS],
                 external_id=doc[DOC_EXTERNAL_IDS],
                 docs=[TextData(text=d, embedding=self._get_vector(d)) for d in doc[DOC_DOCS]],
             )
             self.documents.append(document)
+        log.debug("_load_documents: DOCS LOADED")
         self._load_documents_knn()
 
     def _load_events(self):
@@ -253,7 +271,12 @@ class IntentClassifier:
         Метод для загрузки ивентов в локальную память
         :return:
         """
+        log.debug("_load_events: IN")
+        if not self.events_collection.find_one():
+            log.debug("_load_events: NO EVENTS")
+            return
         for event in self.events_collection.find():
+            log.debug("_load_events: loading event: " + str(event[EVENT_NAME]))
             event = Event(
                 ids=event[EVENT_IDS],
                 name=event[EVENT_NAME],
@@ -261,16 +284,19 @@ class IntentClassifier:
                 embeddings=[self._get_vector(ph) for ph in event[EVENT_PHRASES]]
             )
             self.events.append(event)
-        self._load_events()
+        log.debug("_load_events: EVENTS LOADED")
+        self._load_events_knn()
 
     def _get_connection(self):
         """
         Подключение к базу данных MongoDB
         :return:
         """
+        log.debug("_get_connection: IN")
         connection = MongoClient(self.mongo_address, self.mongo_port)
         doc_collection = connection[self.db_name][self.doc_collection_name]
         event_collection = connection[self.db_name][self.event_collection_name]
+        log.debug("_get_connection: DB CONNECTED")
         return connection, doc_collection, event_collection
 
     def on_stop(self):
@@ -278,6 +304,7 @@ class IntentClassifier:
         Безопасное отключение ресурсов базы данных. Рекомендовано использовать для
         :return:
         """
+        log.debug("_get_connection: ON CLOSE CONNECTION")
         self.connection.close()
 
     def add_document(self, external_ids: str, docs: List[str], ):
@@ -330,13 +357,16 @@ class IntentClassifier:
         Метод для добавления ивента
         :return:
         """
+        log.debug("add_event: IN")
         if not self.events_collection.find_one({EVENT_NAME: name}):
+            log.debug("add_event: event not found")
             event_id = self.events_collection.insert_one({
                 EVENT_NAME: name,
                 EVENT_PHRASES: phrases
             }).inserted_id
             event = self.events_collection.find_one({EVENT_IDS: event_id})
         else:
+            log.debug("add_event: event founded")
             event = self.events_collection.find_one({EVENT_NAME: name})
         self.events.append(Event(
             ids=event[EVENT_IDS],
@@ -344,19 +374,57 @@ class IntentClassifier:
             phrases=event[EVENT_PHRASES],
             embeddings=[self._get_vector(ev) for ev in event[EVENT_PHRASES]]
         ))
+        log.debug("add_event: event added")
         self._load_events()
 
-    def delete_event(self):
-        pass
+    def predict_event(self, query: str):
+        """
+        Навигация по ивентам
+        :param query:
+        :return:
+        """
+        phrase = self._get_vector(query)
+        phrase = phrase.reshape(1, len(phrase))
+        result = self.events_knn.predict(phrase)[0]
+        result = dict(self.events_collection.find_one({EVENT_NAME: result}))
+        result.pop(EVENT_IDS)
+        return result
 
-    def predict_event(self):
-        pass
 
-    def predict_document(self):
-        pass
+    def predict_document(self, query: str):
+        """
+        Навигация по ljrevtynfv
+        :param query:
+        :return:
+        """
+        phrase = self._get_vector(query)
+        phrase = phrase.reshape(1, len(phrase))
+        result = self.documents_knn.predict(phrase)[0]
+        result = dict(self.doc_collection.find_one({DOC_EXTERNAL_IDS: result}))
+        result.pop(DOC_IDS)
+        return result
 
-    def predict_all(self):
-        pass
+    def predict_all(self, query: str):
+        """
+        Метод получения релевантных документов и ивентов
+        :param query:
+        :return:
+        """
+        phrase = self._get_vector(query)
+        phrase = phrase.reshape(1, len(phrase))
+        doc = self.documents_knn.predict(phrase)[0]
+        doc = dict(self.doc_collection.find_one({DOC_EXTERNAL_IDS: doc}))
+        event = self.events_knn.predict(phrase)[0]
+        event = dict(self.events_collection.find_one({EVENT_NAME: event}))
+        event.pop(EVENT_IDS)
+        doc.pop(DOC_IDS)
+        return {
+            "document": doc,
+            "event": event
+        }
+
 
 if __name__ == '__main__':
     service = IntentClassifier()
+    service.predict_all("Где найти картику Моне Кувшинки")
+

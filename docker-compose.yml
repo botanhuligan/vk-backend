@@ -1,38 +1,53 @@
 version: '3.6'
 services:
 
-#  back:
-#      volumes:
-#        - .:/app
-#      build:
-#        context: .
-#        dockerfile: Dockerfile
-#      container_name: vk-server
-#      ports:
-#        - 9080:9080
-#      env_file:
-#        - ./.env
-#      hostname: vk-server
-#      command: python3 server.py
-##      networks:
-##        - server
-#      restart: always
+  back:
+      volumes:
+        - .:/app
+      build:
+        context: .
+        dockerfile: Dockerfile
+      container_name: vk-server
+      ports:
+        - 9080:9080
+      env_file:
+        - ./.env
+      hostname: vk-server
+      command: python3 server.py
+      networks:
+        - server
+      restart: always
+      links:
+        - "mongo:mongodb"
+        - "classifier:classifier"
 
-  bert:
+  classifier:
     build:
       context: .
       dockerfile: icaas/Dockerfile
-    container_name: bert
+    container_name: classifier
     ports:
-      - 5555:5555
-      - 5556:5556
+      - 8585:8585
     restart: always
     volumes:
       - .:/app
-#    networks:
-#      - server
+    networks:
+      - server
+    links:
+      - "mongo:mongodb"
+  mongo:
+    ports:
+      - "27017:27017"
+    image: mongo
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - server
 
+networks:
+  server:
+    external: true
 
-#networks:
-#  server:
-#    external: true
+volumes:
+  mongo-data: {}
