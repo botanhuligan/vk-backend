@@ -1,0 +1,13 @@
+name: TellAbout
+
+states:
+  START:
+    edges:
+      TELL_ABOUT_IMG: TellAbout
+    is_default: true
+
+  TellAbout:
+    edges:
+      RESTART: START
+    action: tell_about_obj
+    event: RESTART
