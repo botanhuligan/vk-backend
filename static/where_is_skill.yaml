@@ -3,7 +3,9 @@ name: WhereIsSkill
 states:
   START:
     edges:
-      WHERE_IS_EVENT: WhereIs
+      TOILET: Toilet
+      EXIT: Exit
+      TICKET: Ticket
     is_default: true
 
   WhereIs:
@@ -11,3 +13,27 @@ states:
       RESTART: START
     action: where_is_action
     event: RESTART
+
+  AnyHelp:
+    answer: Чем ещё могу помочь?
+    edges:
+      RESTART: START
+    event: RESTART
+
+  Toilet:
+    edges:
+      NEXT: AnyHelp
+    event: NEXT
+    answer: Туалет находится на первом этаже у раздевалки.
+
+  Exit:
+    edges:
+      NEXT: AnyHelp
+    event: NEXT
+    answer: Чтобы дойти до выхода идите прямо до конца и направо.
+
+  Ticket:
+    edges:
+      NEXT: AnyHelp
+    event: NEXT
+    answer: Пройдите налево до конца и по лестнице вниз, там увидите кассы.

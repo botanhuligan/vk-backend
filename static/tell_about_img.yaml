@@ -9,5 +9,19 @@ states:
   TellAbout:
     edges:
       RESTART: START
+      NO_EVENT: Finish
+      YES_EVENT: MoreInfo
     action: tell_about_obj
+
+  Finish:
+    edges:
+      RESTART: START
+    answer: Хорошо! Чем могу помочь?
     event: RESTART
+
+  MoreInfo:
+    edges:
+      RESTART: START
+    action: tell_more_about_obj
+    event: RESTART
+
