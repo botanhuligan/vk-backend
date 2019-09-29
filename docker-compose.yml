@@ -22,6 +22,21 @@ services:
         - "classifier:classifier"
         - "voice:voice"
 
+  imgtovec:
+    build:
+      context: .
+      dockerfile: imgtovec/Dockerfile
+    container_name: imgtovec
+    ports:
+        - 9918:9918
+    restart: always
+    volumes:
+        - .:/app
+    networks:
+        - server
+    links:
+        - "mongo:mongodb"
+
   classifier:
     build:
       context: .
