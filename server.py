@@ -1,7 +1,9 @@
 import json
 
 import requests
-from flask import Flask, request, abort
+from flask import Flask, request, abort, jsonify
+
+from icaas.load_fixrures import ARTS
 from skills import (
     legend_skill, simple_skill, where_is_skill, excursion_skill
 )
@@ -14,6 +16,11 @@ app = Flask(__name__)
 headers = {'Content-type': 'application/json',  # Определение типа данных
            'Accept': 'text/plain',
            'Content-Encoding': 'utf-8'}
+
+
+def get_obj(_id):
+    for obj in ARTS.find({"external_ids":_id}):
+        return obj
 
 
 class MyServer:
@@ -33,13 +40,19 @@ class MyServer:
 
     def send_message(self, message):
         log.debug(json.dumps(message))
-        requests.post("http://back:9081/say",
-                      json.dumps(message),
-                      headers=headers)
+        try:
+            requests.post("http://back:9081/say",
+                          json.dumps(message),
+                          headers=headers)
+        except Exception as exception:
+            log.error(exception)
 
-        requests.post("http://back:9090/message",
-                      json.dumps(message),
-                      headers=headers)
+        try:
+            requests.post("http://back:9090/message",
+                          json.dumps(message),
+                          headers=headers)
+        except Exception as exception:
+            log.error(exception)
 
     def send_log(self, message):
         requests.post("http://back:9081/log",
@@ -49,6 +62,13 @@ class MyServer:
 
 my_server = MyServer()
 process = []
+
+
+@app.route("/get_obj")
+def obj():
+    _obj = get_obj(request.args.get("id"))
+    del _obj['_id']
+    return jsonify(_obj)
 
 
 @app.route("/")
