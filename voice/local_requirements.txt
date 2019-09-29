@@ -1,0 +1,4 @@
+google-cloud-speech
+google-cloud-texttospeech
+python-decouple==3.1
+Flask==1.1.1
