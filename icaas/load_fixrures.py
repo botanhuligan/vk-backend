@@ -58,11 +58,17 @@ def save_to_json():
 def load_from_json():
     with open(os.path.join(os.path.dirname(__file__), 'fixtures.json'), "r") as stream:
         result = json.load(stream)
+    if EVENTS.find_one():
+        for event in EVENTS.find():
+            EVENTS.delete_one(event)
     for event in result[EVENT]:
         EVENTS.insert_one({
             EVENT_NAME: event[EVENT_NAME],
             EVENT_PHRASES: event[EVENT_PHRASES]
         })
+    if ARTS.find_one():
+        for event in ARTS.find():
+            ARTS.delete_one(event)
     for document in result[DOC]:
         ARTS.insert_one({
             DOC_EXTERNAL_IDS: document[DOC_EXTERNAL_IDS],

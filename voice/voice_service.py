@@ -61,4 +61,4 @@ def stt():
 
 
 if __name__ == '__main__':
-    app.run(app.config["STT_TTS_HOST"], app.config["STT_TTS_PORT"], debug=True)
+    app.run(app.config["STT_TTS_HOST"], app.config["STT_TTS_PORT"], debug=False)
