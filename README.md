@@ -14,14 +14,14 @@ MosaicServer - https://github.com/botanhuligan/vk-mosaic-server
 
  Проект реализован на микросервисной архитектуре с основным сервисом -
  ArtMira - Backend со следующими функциями модулями:
-- image2vector - сервис идентификации артефактов (произведений искусств)
-- voice - STT-TTS сервер с реализацией от Google
-- icaas - Intent Classification As A Service - Сервис интент классификации и Поиска релевантных документов (BERT + KNN)
+- image2vector - сервис идентификации артефактов (произведений искусств) demo134.foxtrot.vkhackathon.com:9918
+- voice - STT-TTS сервер с реализацией от Google demo134.foxtrot.vkhackathon.com:9316/tts + demo134.foxtrot.vkhackathon.com:9316/stt
+- icaas - Intent Classification As A Service - Сервис интент классификации и Поиска релевантных документов (BERT + KNN) demo134.foxtrot.vkhackathon.com:9316/get_navigation/<query>
 - engine - Диалоговый движок
 - skills - репозиторий описания скилов
 VK Mini Apps CLient - Клиентская реализация с кросс-сервисным взаимодействием
-Message Server - Сервис обмена сообщений на технологии Long Pooling
-MosaicServer - Сервис генерирования изображения из нескольких картин
+Message Server - Сервис обмена сообщений на технологии Long Pooling (http://demo134.foxtrot.vkhackathon.com:9082/)
+MosaicServer - Сервис генерирования изображения из нескольких картин (http://demo134.foxtrot.vkhackathon.com:9082/ image:file)
 
 Все модули обернуты в Docker  файлы и запускаются от docker-compose
 
