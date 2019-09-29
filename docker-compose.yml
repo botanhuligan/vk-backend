@@ -35,6 +35,7 @@ services:
       - server
     links:
       - "mongo:mongodb"
+
   mongo:
     ports:
       - "27017:27017"
