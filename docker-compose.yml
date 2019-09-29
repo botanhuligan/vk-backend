@@ -20,6 +20,7 @@ services:
       links:
         - "mongo:mongodb"
         - "classifier:classifier"
+        - "voice:voice"
 
   classifier:
     build:
@@ -35,6 +36,20 @@ services:
       - server
     links:
       - "mongo:mongodb"
+
+  voice:
+    build:
+      context: .
+      dockerfile: voice/Dockerfile
+    container_name: voice
+    ports:
+      - 9316:9316
+    restart: always
+    volumes:
+      - .:/app
+    networks:
+      - server
+
 
   mongo:
     ports:
