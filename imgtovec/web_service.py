@@ -16,6 +16,21 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.applications.resnet50 import preprocess_input
+from tensorflow import Session, ConfigProto
+from tensorflow.keras import backend as K
+con = ConfigProto(
+    device_count={'GPU': 1},
+    intra_op_parallelism_threads=1,
+    allow_soft_placement=True
+)
+
+con.gpu_options.allow_growth = True
+con.gpu_options.per_process_gpu_memory_fraction = 0.6
+
+session = Session(config=con)
+
+K.set_session(session)
+
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -23,7 +38,7 @@ logging.basicConfig(
  '%(filename)s:%(funcName)s:%(lineno)s: %(message)s'.format("IMAGE_CLASSIFIER_WEB_SERVICE"),
  datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")
 
-CLASSIFIER = "CLASSIFIER"
+
 IMAGE_FOLDER = "images"
 IMAGE_IDS = "ConstituentID"
 IMAGES_CSV_URL = "https://media.githubusercontent.com/media/MuseumofModernArt/collection/master"
@@ -126,7 +141,8 @@ class ImageClassifier:
             self.model = None
 
     def download_image(self, url: str, image_name: str):
-        if 'jpg' not in image_name:
+        if 'm4a' in url:
+            log.info("download_image:bad filename" + str(image_name))
             return None
         response = requests.get(url)
         if not response.ok:
@@ -146,31 +162,28 @@ class ImageClassifier:
             if not my_img:
                 log.info("_load_data: ARTIFACT WITH BAD IMAGE")
                 continue
+            print("TEST: ", process_image(my_img).shape)
             self.images.append(Image(
                 ids=artifact[DOC_EXTERNAL_IDS],
                 path=artifact[DOC_IMG],
-                embedding=self.vector_model(process_image(my_img))
+                embedding=self.vector_model.predict(process_image(my_img))[0]
             ))
             log.info("_load_data: ADDED IMAGE: " + str(artifact[DOC_EXTERNAL_IDS]))
         self._fit_knn()
 
     def _fit_knn(self):
-        X = []
-        Y = []
+        X_data = []
+        Y_data = []
         if not self.images:
             return
         for img in self.images:
-            if not img.embedding:
-                continue
-            if not img.ids:
-                continue
-            X.append(img.embedding)
-            Y.append(img.ids)
-        X = np.array(X)
-        Y = np.array(Y)
-        print("X.shapes: ", X.shape)
-        print("Y.shapes: ", Y.shape)
-        self.image_knn_classifier.fit(X, Y)
+            X_data.append(img.embedding)
+            Y_data.append(img.ids)
+        X_data = np.array(X_data)
+        print("X_data.shape: ", X_data.shape)
+        Y_data = np.array(Y_data)
+        print("Y_data.shape: ", Y_data.shape)
+        self.image_knn_classifier.fit(X_data, Y_data)
 
     def _get_knn_classifier(self):
         self.image_knn_classifier = KNeighborsClassifier(
@@ -185,22 +198,23 @@ class ImageClassifier:
 
     def _predict_image(self, img: np.ndarray):
         log.info("predict_image: Predicting vector")
-        vector = self.vector_model.predict(img)
+        print("input img.shape: ", img.shape)
+        with session.as_default():
+            with session.graph.as_default():
+                vector = self.vector_model.predict(img)
         log.info("predict_image: Upgrade image vector")
-        if self.model:
-            vector = self.model.predict(vector) # Пока не будет обучена промежуточная модель - шаг будет пропускатсья
         result = self.image_knn_classifier.predict(vector)[0]
         result = dict(self.doc_collection.find_one({DOC_EXTERNAL_IDS: result}))
         result.pop(DOC_IDS)
         return result
 
     def predict(self, file_path: str):
+        log.debug("predict: IN")
         img = process_image(file_path)
         return self._predict_image(img)
 
-
+CLASSIFIER = ImageClassifier()
 app = flask.Flask(__name__)
-app.config[CLASSIFIER] = ImageClassifier()
 app.config["I2V_HOST"] = config("I2V_HOST", default="0.0.0.0", cast=str)
 app.config["I2V_PORT"] = config("I2V_PORT", default="9918", cast=int)
 
@@ -211,10 +225,10 @@ def get_image_data():
     img = flask.request.files.get("image")
     if not img:
         return "Image empty", 401
-    path = os.path.join(app.config[CLASSIFIER].image_folder, 'to_do_image.jpg')
+    path = os.path.join(CLASSIFIER.image_folder, 'to_do_image.jpg')
     img.save(path)
-    return app.config[CLASSIFIER].predict(path), 200
+    return CLASSIFIER.predict(path), 200
 
 
 if __name__ == '__main__':
-    app.run(app.config["I2V_HOST"], app.config["I2V_PORT"], debug=True)
+    app.run(app.config["I2V_HOST"], app.config["I2V_PORT"], debug=False)
