@@ -2,6 +2,8 @@ from typing import Dict
 from multiprocessing import Queue
 import re
 
+import requests
+
 from .answer import Answer
 from .action import Action
 from .message import Message
@@ -57,13 +59,15 @@ class Dispatcher:
         :param user:
         :return:
         """
-        reg = re.compile('[^a-zA-Zа-яА-Я ]')
-        message_text = reg.sub('', message_text)
-        print(message_text)
-        for event, phrases in self._events.items():
-            if message_text.lower() in phrases:
-                return event
-        return None
+        # reg = re.compile('[^a-zA-Zа-яА-Я ]')
+        # message_text = reg.sub('', message_text)
+        # print(message_text)
+        # for event, phrases in self._events.items():
+        #     if message_text.lower() in phrases:
+        #         return event
+        # return None
+        resp = requests.get("http://classifier:8585/get_navigation/" + str(message_text))
+        return resp.json()["event"]["name"]
 
     def set_send_message(self, send_message):
         self._send_message = send_message
