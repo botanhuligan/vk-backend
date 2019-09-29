@@ -37,6 +37,10 @@ class MyServer:
                       json.dumps(message),
                       headers=headers)
 
+        requests.post("http://back:9090/message",
+                      json.dumps(message),
+                      headers=headers)
+
     def send_log(self, message):
         requests.post("http://back:9081/log",
                       json.dumps(message),
